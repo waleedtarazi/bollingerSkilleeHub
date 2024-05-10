@@ -2,6 +2,12 @@ import io
 import numpy as np
 import matplotlib.pyplot as plt
 import yfinance
+from enum import Enum
+
+class data_symbol(Enum):
+    AAPL = 'AAPL'
+    TATASTEEL = 'TATASTEEL.NS'
+
 
 # Upper/Lower bands
 # in this function we calculate the data
@@ -156,8 +162,9 @@ def make_analysis(stock_symbol):
     buy_price, sell_price = strategy(data)
     data['buy'] = buy_price
     data['sell'] = sell_price
-    img_buffer = make_plot(data,SMA_close)
-    return img_buffer
+    # img_buffer = make_plot(data,SMA_close)
+    return data
+    # return img_buffer
     
 
 

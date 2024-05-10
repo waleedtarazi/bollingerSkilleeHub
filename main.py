@@ -1,4 +1,5 @@
 from io import BytesIO, StringIO
+import json
 from typing import Annotated
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Response, UploadFile
 import pandas as pd
@@ -10,10 +11,10 @@ from fastapi import FastAPI
 description = """
 SkileeHub's BollingerBands API helps you do awesome tranding. 🤑
 
-## uploadFile
-You can do:
-* **Upload csv & xlsx**.
+## You can do:
+* **Upload csv & xlsx**. (__implemented but currently under constructions)
 * **attach link for your stock data** (_not implemented_).
+* **Yahoo data choosing**  Yahoo stock data like: AAPL,TATASTEEL.NS ! 
 """
 
 app = FastAPI(
@@ -42,7 +43,6 @@ def check_columns(df):
     """
     df_columns = [column for column in df.columns.tolist()]
     needed_params = ['Close', 'Open', 'High', 'Low']
-    needed_params = ['Close', 'Open', 'High', 'Low']
     for column in needed_params:
         if column in df_columns:
             continue
@@ -64,7 +64,6 @@ def read_csv_file(file: UploadFile):
     found,column = check_columns(df)
     if(found):
         return True,"",df
-        return True,"",df
     else:
         return False, column,df
     
@@ -72,31 +71,29 @@ def read_csv_file(file: UploadFile):
 @app.get("/")
 async def home():
     return {"message":"Add  **/docs**  to use the SwaggerUI"}
-@app.get("/")
-async def home():
-    return {"message":"Add  **/docs**  to use the SwaggerUI"}
 
-@app.post("/uploadfile/")
+
+@app.post("/uploadfile/",description="currently will accept files, but not processing correctly ")
 async def create_upload_file(file: UploadFile):
     found,not_found,data = read_csv_file(file)
-    found,not_found,data = read_csv_file(file)
     if(found):
-        date = pre_processing_data(data)
-        print(data.head())
-        date = pre_processing_data(data)
-        print(data.head())
-        return {"file_name" : file.filename}
+        data = make_analysis("file")
+        if data:
+            buy_points = data[data['buy'].notnull()]
+            sell_points = data[data['sell'].notnull()]
+            return {"file_name" : file.filename,
+                    "buy_points" : buy_points.to_json(orient='records',),
+                    "sell_points" :sell_points.to_json(orient='records') }
     else:
         raise HTTPException(status_code=403,
                             detail=f"the column -> {not_found} <- is not found in the data you provided") 
+        
     
-
-@app.get('/analysis/TATASTEEL')
-async def analysis_TA(background_tasks: BackgroundTasks):
-    img_buff = make_analysis('TATASTEEL.NS')
-    bufContents: bytes = img_buff.getvalue()
-    background_tasks.add_task(img_buff.close)
-    headers = {'Content-Disposition': 'inline; filename="analysis.png"'}
-    return Response(bufContents, headers=headers, media_type='image/png')
-    
-    
+@app.get('/analys/Yahoo-data/')
+async def analys_yahoo(data_symbol: data_symbol):
+    data = make_analysis(data_symbol.value)
+    buy_points = data[data['buy'].notnull()]
+    sell_points = data[data['sell'].notnull()]
+    return {"data choosen" : data_symbol.value,
+            "buy_points" : buy_points.to_json(orient='records',),
+            "sell_points" :sell_points.to_json(orient='records') }
