@@ -3,8 +3,31 @@ from typing import Annotated
 from fastapi import FastAPI, File, HTTPException, UploadFile
 import pandas as pd
 
+from bollinger_helper import pre_processing_data
 
-app = FastAPI()
+
+from fastapi import FastAPI
+
+description = """
+SkileeHub's BollingerBands API helps you do awesome tranding. 🤑
+
+## uploadFile
+You can do:
+* **Upload csv & xlsx**.
+* **attach link for your stock data** (_not implemented_).
+"""
+
+app = FastAPI(
+    title="skilleeBolinger",
+    description=description,
+    summary="invest on the right time 💹",
+    version="0.1.3",
+    contact={
+        "name": "Waleed Al-Tarazi",
+        "url": "https://www.linkedin.com/in/waleed-al-tarazi/",
+        "email": "waleedaltarazy@gmail.com",
+    },
+)
 
 def check_columns(df):
     """_summary_\n
@@ -19,7 +42,7 @@ def check_columns(df):
         str: the name of the not founded column
     """
     df_columns = [column for column in df.columns.tolist()]
-    needed_params = ['close', 'open', 'high', 'low']
+    needed_params = ['Close', 'Open', 'High', 'Low']
     for column in needed_params:
         if column in df_columns:
             continue
@@ -40,19 +63,21 @@ def read_csv_file(file: UploadFile):
     file.file.close()
     found,column = check_columns(df)
     if(found):
-        return True,""
+        return True,"",df
     else:
-        return False, column
+        return False, column,df
     
 
-@app.post("/files/")
-async def create_file(file: Annotated[bytes, File()]):
-    return {"file_size": len(file)}
+@app.get("/")
+async def home():
+    return {"message":"Add  **/docs**  to use the SwaggerUI"}
 
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile):
-    found,not_found = read_csv_file(file)
+    found,not_found,data = read_csv_file(file)
     if(found):
+        date = pre_processing_data(data)
+        print(data.head())
         return {"file_name" : file.filename}
     else:
         raise HTTPException(status_code=403,
