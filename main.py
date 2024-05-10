@@ -43,6 +43,7 @@ def check_columns(df):
     """
     df_columns = [column for column in df.columns.tolist()]
     needed_params = ['Close', 'Open', 'High', 'Low']
+    needed_params = ['Close', 'Open', 'High', 'Low']
     for column in needed_params:
         if column in df_columns:
             continue
@@ -64,10 +65,15 @@ def read_csv_file(file: UploadFile):
     found,column = check_columns(df)
     if(found):
         return True,"",df
+        return True,"",df
     else:
+        return False, column,df
         return False, column,df
     
 
+@app.get("/")
+async def home():
+    return {"message":"Add  **/docs**  to use the SwaggerUI"}
 @app.get("/")
 async def home():
     return {"message":"Add  **/docs**  to use the SwaggerUI"}
@@ -75,7 +81,10 @@ async def home():
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile):
     found,not_found,data = read_csv_file(file)
+    found,not_found,data = read_csv_file(file)
     if(found):
+        date = pre_processing_data(data)
+        print(data.head())
         date = pre_processing_data(data)
         print(data.head())
         return {"file_name" : file.filename}
