@@ -1,8 +1,11 @@
+import io
 import numpy as np
-import pandas as pd
+import matplotlib.pyplot as plt
+import yfinance
 
 # Upper/Lower bands
-def bollinger_bands(data, window_size = 30):
+# in this function we calculate the data
+def bollinger_bands(data, window_size = 20):
     """
     Function to calculate Bollinger Bands for a given dataset.
 
@@ -13,17 +16,23 @@ def bollinger_bands(data, window_size = 30):
     Returns:
     - DataFrame with 'upperBand' and 'lowerBand' columns added, representing the upper and lower Bollinger Bands.
     """
-    simple_moving_avarage = data['Close'].rolling(window = window_size, ).mean()
-    rolling_std = data['Close'].rolling(window = window_size).std()
+    simple_moving_avarage = data['Close'].rolling(window = window_size, min_periods = 1 ).mean()
+    rolling_std = data['Close'].rolling(window = window_size, min_periods = 1).std()
     
     # add the two columns 
-    data['upperBand'] = simple_moving_avarage + (2* rolling_std)
-    data['lowerBand'] = simple_moving_avarage - (2* rolling_std)
+    print("the rolling std: \n")
+    print(rolling_std)
+    print("SMA is : \n")
+    print(simple_moving_avarage)
+    data['upperBand'] = simple_moving_avarage + 2 * rolling_std
+    data['lowerBand'] = simple_moving_avarage - 2 * rolling_std
     
-    return data
+    return data,simple_moving_avarage
+    
 
 
 # RSI 
+# create
 def calculate_RSI(data, window = 10):
     """
     Function to calculate the Relative Strength Index (RSI) for agiven dataset.
@@ -44,8 +53,8 @@ def calculate_RSI(data, window = 10):
     loss = delta.where(delta < 0, 0)
     
     # calculate RS
-    avg_gain = gain.rolling(window).mean()
-    avg_loss = loss.rolling(window).mean()
+    avg_gain = gain.rolling(window = window, min_periods = 1).mean()
+    avg_loss = loss.rolling(window = window, min_periods = 1).mean()
     RS = avg_gain / avg_loss
     
     # calculate the RSI
@@ -91,14 +100,22 @@ def strategy(data):
     return buy_price, sell_price
 
 # Get the Data
-def fetch_stock_data():
+def fetch_stock_data(stock_symbol):
     """
-    Function to fetch stock data from the right EndPoint
+    Function to fetch stock data from Yahoo Finance API.
 
     Returns:
-    - data: DataFrame containing stock data .
+    - data: DataFrame containing historical stock data for AAPL with a 1-hour timeframe.
     """
-    pass
+    # Fetch AAPL stock data with a 1-hour timeframe by using Yahoo Finance API
+    stock = yfinance.Ticker(stock_symbol)
+
+    
+    # Adjust the period and interval as we needed
+    data = stock.history(period="12mo",
+                        )
+    
+    return data
 
 # preprocessing the data 
 def pre_processing_data(data):
@@ -108,6 +125,42 @@ def pre_processing_data(data):
     data['buy'] = buy_price
     data['sell'] = sell_price
     return data
+
+def make_plot(data,SMA_close):
+# plotting
+    fix, ax = plt.subplots(figsize=(12,10))
+    plt.title("Bolling Bands + RSI ")
+    plt.ylabel("Price USD")
+    plt.xlabel("Date")
+
+    ax.plot(data['Close'], label='Close price', alpha=.6, color='blue')
+    ax.plot(SMA_close, label='simple moving 20-window price', alpha=.8, color='black')
+    ax.plot(data['upperBand'], label='Uppder Band', alpha=.4, color='red')
+    ax.plot(data['lowerBand'], label='Lower Band', alpha=.4, color='green')
+
+    # ax.fill_between(data.index, data['upperBand'], data['lowerBand'], color='grey')
+    ax.scatter(data.index, data['buy'], label="buy", alpha=1, marker='^', color='green')
+    ax.scatter(data.index, data['sell'], label="sell", alpha=1, marker="v", color='red')
+
+    plt.legend()
+    img_buf = io.BytesIO()
+    plt.savefig('bollinger_bands.png')
+    plt.close()
+    return img_buf
+
+
+def make_analysis(stock_symbol):
+    data = fetch_stock_data(stock_symbol)
+    data,SMA_close = bollinger_bands(data)
+    data = calculate_RSI(data)
+    buy_price, sell_price = strategy(data)
+    data['buy'] = buy_price
+    data['sell'] = sell_price
+    img_buffer = make_plot(data,SMA_close)
+    return img_buffer
+    
+
+
 
 
     

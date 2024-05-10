@@ -3,3 +3,6 @@ pydantic
 fastapi
 pandas
 numpy
+
+matplotlib
+yfinance

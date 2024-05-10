@@ -1,10 +1,9 @@
 from io import BytesIO, StringIO
 from typing import Annotated
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Response, UploadFile
 import pandas as pd
 
-from bollinger_helper import pre_processing_data
-
+from bollinger_helper import *
 
 from fastapi import FastAPI
 
@@ -68,7 +67,6 @@ def read_csv_file(file: UploadFile):
         return True,"",df
     else:
         return False, column,df
-        return False, column,df
     
 
 @app.get("/")
@@ -93,4 +91,12 @@ async def create_upload_file(file: UploadFile):
                             detail=f"the column -> {not_found} <- is not found in the data you provided") 
     
 
-
+@app.get('/analysis/TATASTEEL')
+async def analysis_TA(background_tasks: BackgroundTasks):
+    img_buff = make_analysis('TATASTEEL.NS')
+    bufContents: bytes = img_buff.getvalue()
+    background_tasks.add_task(img_buff.close)
+    headers = {'Content-Disposition': 'inline; filename="analysis.png"'}
+    return Response(bufContents, headers=headers, media_type='image/png')
+    
+    
